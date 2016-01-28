@@ -1,0 +1,68 @@
+---
+title: "Identifing Environmental Events With Greatest Health and Economic Effects"
+auhtor: "Philip Tabak"
+date: "`r Sys.Date()`"
+output: html_document
+keep_md: yes
+---
+
+Unzip and read source data. We will also load libraries that we will use later in analysis at this stage.
+
+
+```{r initialize}
+
+library(dplyr)
+
+source_url = "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
+local_filename = "StormData.csv.bz2"
+
+writeLines(capture.output(sessionInfo()), "sessionInfo.txt")
+
+#This mapping function will be used to tidy monetary units
+calcDollars <- function(num, code){
+        
+        num <= as.double(num)
+        return_val <- as.double(num)
+        code <- toupper(code)
+        
+        if(code == "B"){return_val = num * 1000000000}
+        if(code == "M"){return_val = num * 1000000}
+        if(code == "K"){return_val = num * 1000}
+        if(code == "H"){return_val = num * 100}
+        
+        return(return_val)
+}
+```
+
+
+##Synopsis
+###Does the document have a synopsis that describes and summarizes the data analysis in less than 10 sentences?
+
+
+This analysis is preformed on the U.S. National Oceanic and Atmospheric Administration's (NOAA) storm database. Data was downloaded on `r Sys.Date()` from `r source_url`.
+
+
+
+##Data Processing
+###Is there a section titled "Data Processing" that describes how the data were loaded into R and processed for analysis?
+
+
+```{r get-and-clean-source-data}
+
+
+download.file(source_url, destfile = local_filename)
+
+storm_data <- read.csv(bzfile(local_filename))
+
+storm_data_tidy <- mutate(storm_data, prop_dollars = calcDollars(PROPDMG, PROPDMGEXP))
+
+```
+
+
+
+##Results
+###Is there a section titled "Results" where the main results are presented?
+
+
+###Is there at least one figure in the document that contains a plot?
+###Are there at most 3 figures in this document?
