@@ -1,6 +1,6 @@
 ---
 title: "Identifing Environmental Events With Greatest Health and Economic Effects"
-auhtor: "Philip Tabak"
+author: "Philip Tabak"
 date: "`r Sys.Date()`"
 output: html_document
 keep_md: yes
@@ -12,26 +12,13 @@ Unzip and read source data. We will also load libraries that we will use later i
 ```{r initialize}
 
 library(dplyr)
+library(qdap)
 
 source_url = "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
 local_filename = "StormData.csv.bz2"
 
 writeLines(capture.output(sessionInfo()), "sessionInfo.txt")
 
-#This mapping function will be used to tidy monetary units
-calcDollars <- function(num, code){
-        
-        num <= as.double(num)
-        return_val <- as.double(num)
-        code <- toupper(code)
-        
-        if(code == "B"){return_val = num * 1000000000}
-        if(code == "M"){return_val = num * 1000000}
-        if(code == "K"){return_val = num * 1000}
-        if(code == "H"){return_val = num * 100}
-        
-        return(return_val)
-}
 ```
 
 
@@ -52,9 +39,48 @@ This analysis is preformed on the U.S. National Oceanic and Atmospheric Administ
 
 download.file(source_url, destfile = local_filename)
 
-storm_data <- read.csv(bzfile(local_filename))
+storm_data <- read.csv(bzfile(local_filename), strip.white=TRUE)
 
-storm_data_tidy <- mutate(storm_data, prop_dollars = calcDollars(PROPDMG, PROPDMGEXP))
+
+##Need to deal with EVTYPE
+
+
+
+#convert the damage and their partner exponent vairables to a cash variable
+#we will use the below qdap table to map exponent to a multiplier variable and then to cash
+
+h = 10^2
+k = 10^3
+th = 10^4
+hh = 10^5
+m = 10^6
+b = 10^9
+
+key <- data.frame(
+        c( "H", "h", "2", 
+           "k", "K", "3", 
+           "m", "M", "6", 
+           "b", "B","9"),
+        c( h, h, h,
+           k, k, k,
+           m, m, m,
+           b, b, b)
+)
+
+colnames(key) <- c("key", "value")
+
+
+storm_data$crop_multiplier <- lookup(key.match = key, storm_data$CROPDMGEXP, missing = 1)
+storm_data$crop_cash <- storm_data$CROPDMG * storm_data$crop_mult
+
+storm_data$prop_multiplier <- lookup(key.match = key, storm_data$PROPDMGEXP, missing = 1)
+storm_data$prop_cash <- storm_data$PROPDMG * storm_data$prop_mult
+
+##need to figure out inflation
+
+
+## There are a lot of columns we can drop
+
 
 ```
 
@@ -63,6 +89,9 @@ storm_data_tidy <- mutate(storm_data, prop_dollars = calcDollars(PROPDMG, PROPDM
 ##Results
 ###Is there a section titled "Results" where the main results are presented?
 
+
+####summary tables
+####two plots: econimc damage, bodily harm
 
 ###Is there at least one figure in the document that contains a plot?
 ###Are there at most 3 figures in this document?

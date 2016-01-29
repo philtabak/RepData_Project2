@@ -8,8 +8,9 @@
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta name="generator" content="pandoc" />
 
+<meta name="author" content="Philip Tabak" />
 
-<meta name="date" content="2016-01-28" />
+<meta name="date" content="2016-01-29" />
 
 <title>Identifing Environmental Events With Greatest Health and Economic Effects</title>
 
@@ -62,7 +63,8 @@ img {
 
 <div id="header">
 <h1 class="title">Identifing Environmental Events With Greatest Health and Economic Effects</h1>
-<h4 class="date"><em>2016-01-28</em></h4>
+<h4 class="author"><em>Philip Tabak</em></h4>
+<h4 class="date"><em>2016-01-29</em></h4>
 </div>
 
 
@@ -78,30 +80,44 @@ img {
 ## The following objects are masked from 'package:base':
 ## 
 ##     intersect, setdiff, setequal, union</code></pre>
+<pre class="r"><code>library(qdap)</code></pre>
+<pre><code>## Loading required package: qdapDictionaries
+## Loading required package: qdapRegex
+## 
+## Attaching package: 'qdapRegex'
+## 
+## The following objects are masked from 'package:dplyr':
+## 
+##     escape, explain
+## 
+## Loading required package: qdapTools
+## 
+## Attaching package: 'qdapTools'
+## 
+## The following object is masked from 'package:dplyr':
+## 
+##     id
+## 
+## Loading required package: RColorBrewer
+## 
+## Attaching package: 'qdap'
+## 
+## The following object is masked from 'package:dplyr':
+## 
+##     %&gt;%
+## 
+## The following object is masked from 'package:base':
+## 
+##     Filter</code></pre>
 <pre class="r"><code>source_url = &quot;https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2&quot;
 local_filename = &quot;StormData.csv.bz2&quot;
 
-writeLines(capture.output(sessionInfo()), &quot;sessionInfo.txt&quot;)
-
-#This mapping function will be used to tidy monetary units
-calcDollars &lt;- function(num, code){
-        
-        num &lt;= as.double(num)
-        return_val &lt;- as.double(num)
-        code &lt;- toupper(code)
-        
-        if(code == &quot;B&quot;){return_val = num * 1000000000}
-        if(code == &quot;M&quot;){return_val = num * 1000000}
-        if(code == &quot;K&quot;){return_val = num * 1000}
-        if(code == &quot;H&quot;){return_val = num * 100}
-        
-        return(return_val)
-}</code></pre>
+writeLines(capture.output(sessionInfo()), &quot;sessionInfo.txt&quot;)</code></pre>
 <div id="synopsis" class="section level2">
 <h2>Synopsis</h2>
 <div id="does-the-document-have-a-synopsis-that-describes-and-summarizes-the-data-analysis-in-less-than-10-sentences" class="section level3">
 <h3>Does the document have a synopsis that describes and summarizes the data analysis in less than 10 sentences?</h3>
-<p>This analysis is preformed on the U.S. National Oceanic and Atmospheric Administration’s (NOAA) storm database. Data was downloaded on 2016-01-28 from <a href="https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2">https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2</a>.</p>
+<p>This analysis is preformed on the U.S. National Oceanic and Atmospheric Administration’s (NOAA) storm database. Data was downloaded on 2016-01-29 from <a href="https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2">https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2</a>.</p>
 </div>
 </div>
 <div id="data-processing" class="section level2">
@@ -110,23 +126,59 @@ calcDollars &lt;- function(num, code){
 <h3>Is there a section titled “Data Processing” that describes how the data were loaded into R and processed for analysis?</h3>
 <pre class="r"><code>download.file(source_url, destfile = local_filename)
 
-storm_data &lt;- read.csv(bzfile(local_filename))
+storm_data &lt;- read.csv(bzfile(local_filename), strip.white=TRUE)
 
-storm_data_tidy &lt;- mutate(storm_data, prop_dollars = calcDollars(PROPDMG, PROPDMGEXP))</code></pre>
-<pre><code>## Warning in if (code == &quot;B&quot;) {: the condition has length &gt; 1 and only the
-## first element will be used</code></pre>
-<pre><code>## Warning in if (code == &quot;M&quot;) {: the condition has length &gt; 1 and only the
-## first element will be used</code></pre>
-<pre><code>## Warning in if (code == &quot;K&quot;) {: the condition has length &gt; 1 and only the
-## first element will be used</code></pre>
-<pre><code>## Warning in if (code == &quot;H&quot;) {: the condition has length &gt; 1 and only the
-## first element will be used</code></pre>
+
+##Need to deal with EVTYPE
+
+
+
+#convert the damage and their partner exponent vairables to a cash variable
+#we will use the below qdap table to map exponent to a multiplier variable and then to cash
+
+h = 10^2
+k = 10^3
+th = 10^4
+hh = 10^5
+m = 10^6
+b = 10^9
+
+key &lt;- data.frame(
+        c( &quot;H&quot;, &quot;h&quot;, &quot;2&quot;, 
+           &quot;k&quot;, &quot;K&quot;, &quot;3&quot;, 
+           &quot;m&quot;, &quot;M&quot;, &quot;6&quot;, 
+           &quot;b&quot;, &quot;B&quot;,&quot;9&quot;),
+        c( h, h, h,
+           k, k, k,
+           m, m, m,
+           b, b, b)
+)
+
+colnames(key) &lt;- c(&quot;key&quot;, &quot;value&quot;)
+
+
+storm_data$crop_multiplier &lt;- lookup(key.match = key, storm_data$CROPDMGEXP, missing = 1)
+storm_data$crop_cash &lt;- storm_data$CROPDMG * storm_data$crop_mult
+
+storm_data$prop_multiplier &lt;- lookup(key.match = key, storm_data$PROPDMGEXP, missing = 1)
+storm_data$prop_cash &lt;- storm_data$PROPDMG * storm_data$prop_mult
+
+##need to figure out inflation
+
+
+## There are a lot of columns we can drop</code></pre>
 </div>
 </div>
 <div id="results" class="section level2">
 <h2>Results</h2>
 <div id="is-there-a-section-titled-results-where-the-main-results-are-presented" class="section level3">
 <h3>Is there a section titled “Results” where the main results are presented?</h3>
+<div id="summary-tables" class="section level4">
+<h4>summary tables</h4>
+</div>
+<div id="two-plots-econimc-damage-bodily-harm" class="section level4">
+<h4>two plots: econimc damage, bodily harm</h4>
+</div>
 </div>
 <div id="is-there-at-least-one-figure-in-the-document-that-contains-a-plot" class="section level3">
 <h3>Is there at least one figure in the document that contains a plot?</h3>
