@@ -10,7 +10,7 @@
 
 <meta name="author" content="Philip Tabak" />
 
-<meta name="date" content="2016-01-29" />
+<meta name="date" content="2016-01-30" />
 
 <title>Identifing Environmental Events With Greatest Health and Economic Effects</title>
 
@@ -64,49 +64,42 @@ img {
 <div id="header">
 <h1 class="title">Identifing Environmental Events With Greatest Health and Economic Effects</h1>
 <h4 class="author"><em>Philip Tabak</em></h4>
-<h4 class="date"><em>2016-01-29</em></h4>
+<h4 class="date"><em>2016-01-30</em></h4>
 </div>
 
 
 <p>Unzip and read source data. We will also load libraries that we will use later in analysis at this stage.</p>
 <pre class="r"><code>library(dplyr)</code></pre>
 <pre><code>## 
-## Attaching package: 'dplyr'
+## Attaching package: 'dplyr'</code></pre>
+<pre><code>## The following objects are masked from 'package:stats':
 ## 
-## The following objects are masked from 'package:stats':
-## 
-##     filter, lag
-## 
-## The following objects are masked from 'package:base':
+##     filter, lag</code></pre>
+<pre><code>## The following objects are masked from 'package:base':
 ## 
 ##     intersect, setdiff, setequal, union</code></pre>
 <pre class="r"><code>library(qdap)</code></pre>
-<pre><code>## Loading required package: qdapDictionaries
-## Loading required package: qdapRegex
+<pre><code>## Loading required package: qdapDictionaries</code></pre>
+<pre><code>## Loading required package: qdapRegex</code></pre>
+<pre><code>## Warning: package 'qdapRegex' was built under R version 3.2.3</code></pre>
+<pre><code>## 
+## Attaching package: 'qdapRegex'</code></pre>
+<pre><code>## The following objects are masked from 'package:dplyr':
 ## 
-## Attaching package: 'qdapRegex'
+##     escape, explain</code></pre>
+<pre><code>## Loading required package: qdapTools</code></pre>
+<pre><code>## 
+## Attaching package: 'qdapTools'</code></pre>
+<pre><code>## The following object is masked from 'package:dplyr':
 ## 
-## The following objects are masked from 'package:dplyr':
+##     id</code></pre>
+<pre><code>## Loading required package: RColorBrewer</code></pre>
+<pre><code>## 
+## Attaching package: 'qdap'</code></pre>
+<pre><code>## The following object is masked from 'package:dplyr':
 ## 
-##     escape, explain
-## 
-## Loading required package: qdapTools
-## 
-## Attaching package: 'qdapTools'
-## 
-## The following object is masked from 'package:dplyr':
-## 
-##     id
-## 
-## Loading required package: RColorBrewer
-## 
-## Attaching package: 'qdap'
-## 
-## The following object is masked from 'package:dplyr':
-## 
-##     %&gt;%
-## 
-## The following object is masked from 'package:base':
+##     %&gt;%</code></pre>
+<pre><code>## The following object is masked from 'package:base':
 ## 
 ##     Filter</code></pre>
 <pre class="r"><code>source_url = &quot;https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2&quot;
@@ -117,7 +110,7 @@ writeLines(capture.output(sessionInfo()), &quot;sessionInfo.txt&quot;)</code></p
 <h2>Synopsis</h2>
 <div id="does-the-document-have-a-synopsis-that-describes-and-summarizes-the-data-analysis-in-less-than-10-sentences" class="section level3">
 <h3>Does the document have a synopsis that describes and summarizes the data analysis in less than 10 sentences?</h3>
-<p>This analysis is preformed on the U.S. National Oceanic and Atmospheric Administration’s (NOAA) storm database. Data was downloaded on 2016-01-29 from <a href="https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2">https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2</a>.</p>
+<p>This analysis is preformed on the U.S. National Oceanic and Atmospheric Administration’s (NOAA) storm database. Data was downloaded on 2016-01-30 from <a href="https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2">https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2</a>.</p>
 </div>
 </div>
 <div id="data-processing" class="section level2">

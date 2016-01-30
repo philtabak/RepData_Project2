@@ -1,6 +1,5 @@
 ---
 title: "Identifing Environmental Events With Greatest Health and Economic Effects"
-author: "Philip Tabak"
 date: "`r Sys.Date()`"
 output: html_document
 keep_md: yes
@@ -17,6 +16,8 @@ library(qdap)
 source_url = "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
 local_filename = "StormData.csv.bz2"
 
+evtype_file = "official_evtype.csv"
+
 writeLines(capture.output(sessionInfo()), "sessionInfo.txt")
 
 ```
@@ -32,18 +33,34 @@ This analysis is preformed on the U.S. National Oceanic and Atmospheric Administ
 
 ##Data Processing
 ###Is there a section titled "Data Processing" that describes how the data were loaded into R and processed for analysis?
+Since NOAA only began recording all events since 1996, all data for prior years will be dropped. Source: http://www.ncdc.noaa.gov/stormevents/details.jsp?type=eventtype
+
+A list of official event types was collected by hand from the ￼NATIONAL WEATHER SERVICE INSTRUCTION 10-1605 document published on August 17, 2007. At the time of this report, the document was available here:
+
+http://www.nws.noaa.gov/directives/sym/pd01016005curr.pdf
+
+The official events are saved in `r evtype_file`.
 
 
 ```{r get-and-clean-source-data}
 
 
-download.file(source_url, destfile = local_filename)
+#download.file(source_url, destfile = local_filename)
 
 storm_data <- read.csv(bzfile(local_filename), strip.white=TRUE)
 
 
-##Need to deal with EVTYPE
+#Pull the year out of the BGN_DATE column.
+regex_pattern <- "\\d\\d?/\\d\\d?/(\\d\\d\\d\\d).*"
+storm_data$year <- as.numeric(gsub(regex_pattern, "\\1", storm_data$BGN_DATE))
 
+#since we want to be fair to all the events
+storm_data <- storm_data[storm_data$year >= "1996",]
+
+
+##Need to deal with EVTYPE
+evtypes <-read.csv("official_evtype.csv")
+evtypes$EVTYPE_offical <- toupper(evtypes$EVTYPE_offical)
 
 
 #convert the damage and their partner exponent vairables to a cash variable
@@ -75,8 +92,6 @@ storm_data$crop_cash <- storm_data$CROPDMG * storm_data$crop_mult
 
 storm_data$prop_multiplier <- lookup(key.match = key, storm_data$PROPDMGEXP, missing = 1)
 storm_data$prop_cash <- storm_data$PROPDMG * storm_data$prop_mult
-
-##need to figure out inflation
 
 
 ## There are a lot of columns we can drop
