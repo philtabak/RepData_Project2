@@ -1,0 +1,7 @@
+name: Publish Document
+account: rpubs
+server: rpubs.com
+bundleId:
+        https://api.rpubs.com/api/v1/document/149270/3d9ff9b3f2a9468aa05adde87bfb2662
+url: http://rpubs.com/philtabak/149270/edit
+when: 1454289232.94511

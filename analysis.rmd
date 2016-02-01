@@ -1,55 +1,53 @@
 ---
-title: "Identifing Environmental Events With Greatest Health and Economic Effects"
+title: "Identifying Environmental Events With Greatest Health and Economic Effects"
 date: "`r Sys.Date()`"
-output: html_document
+output: 
+  html_document: 
+    fig_height: 8
+    fig_width: 8
 keep_md: yes
 ---
 
-Unzip and read source data. We will also load libraries that we will use later in analysis at this stage.
+##Synopsis
+
+This analysis aims to identify the types of storms which have the biggest economic impact and greatest harm to humans, answering these two questions:
+
+1. Across the United States, which types of events are most harmful with respect to population health?
+
+2. Across the United States, which types of events have the greatest economic consequences?
+
+Excessive heat has caused the most deaths since 1996. Tornadoes the second most and are the leading cause of injury. Flooding has far and away caused the greatest economic damage when crop and property damage is combined.
+
 
 
 ```{r initialize}
-
+#normally echo would be off for this
 library(dplyr)
 library(qdap)
 library(stringr)
 library(stringdist)
+library(ggplot2)
 
 source_url = "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
 local_filename = "StormData.csv.bz2"
-
 evtype_file = "official_evtype.csv"
-
 writeLines(capture.output(sessionInfo()), "sessionInfo.txt")
-
 ```
 
 
-##Synopsis
-###Does the document have a synopsis that describes and summarizes the data analysis in less than 10 sentences?
-
-
-This analysis is preformed on the U.S. National Oceanic and Atmospheric Administration's (NOAA) storm database. Data was downloaded on `r Sys.Date()` from `r source_url`.
-
-
-
 ##Data Processing
-###Is there a section titled "Data Processing" that describes how the data were loaded into R and processed for analysis?
+
+Analysis is preformed on the U.S. National Oceanic and Atmospheric Administration's (NOAA) storm database, downloaded on `r Sys.Date()` from `r source_url`. Only data recorded since 1996 was used as prior to this data was only collected for tornadoes, thunderstorms, wind, and hail. Prior to 1956, only tornadoes were documented.
+
+Unzip and read source data. We will also load libraries that we will use later in analysis at this stage.
+
 Since NOAA only began recording all events since 1996, all data for prior years will be dropped. Source: http://www.ncdc.noaa.gov/stormevents/details.jsp?type=eventtype
-
-A list of official event types was collected by hand from the ￼NATIONAL WEATHER SERVICE INSTRUCTION 10-1605 document published on August 17, 2007. At the time of this report, the document was available here:
-
-http://www.nws.noaa.gov/directives/sym/pd01016005curr.pdf
-
-The official events are saved in `r evtype_file`.
-
 
 ```{r get-and-clean-source-data}
 
 download.file(source_url, destfile = local_filename)
 
 storm_data_full <- read.csv(bzfile(local_filename), strip.white=TRUE)
-#storm_data_full <- read.csv(local_filename, strip.white=TRUE)
 
 cols_to_keep <- c("BGN_DATE", 
                         "CROPDMG",
@@ -63,26 +61,30 @@ cols_to_keep <- c("BGN_DATE",
 storm_data <- storm_data_full[cols_to_keep]
 
 #Pull the year out of the BGN_DATE column.
-regex_pattern <- "\\d\\d?/\\d\\d?/(\\d\\d\\d\\d).*"
-storm_data$YEAR <- as.numeric(gsub(regex_pattern, "\\1", storm_data$BGN_DATE))
+year_pattern <- "\\d\\d?/\\d\\d?/(\\d\\d\\d\\d).*"
+storm_data$YEAR <- as.numeric(gsub(year_pattern, "\\1", storm_data$BGN_DATE))
 
 #since we want to be fair to all the events
 storm_data <- storm_data[storm_data$YEAR >= "1996",]
-
 ```
 
 
-####EVTYPE needs a lot of work.
+A good deal of cleanup is required for the EVTYPE variable. Although only 48 official types have been specified, there are `r length( unique(storm_data_full$EVTYPE))` unique values in the source data file. A number of steps have been taken to clean this up, with any values that could not be cleaned mapped to "OTHER". Each cleanup action in the code below is commented to explain.
+
+A list of official event types was collected by hand from the ￼NATIONAL WEATHER SERVICE INSTRUCTION 10-1605 document published on August 17, 2007. At the time of this report, the document was available here:
+
+http://www.nws.noaa.gov/directives/sym/pd01016005curr.pdf
+
+The official events are saved in `r evtype_file`. This file will be used to map values from EVTYPE to EVTYPE.clean.
+
 ```{r EVTYPE-cleanup}
 evtypes <- read.csv("official_evtype.csv", strip.white = TRUE)
 evtypes$EVTYPE.offical <- toupper(evtypes$EVTYPE.offical)
 
 #convert all of EVTYPE to upper case
 storm_data$EVTYPE.clean <- str_trim(toupper(storm_data$EVTYPE))
-
 #remove all summary rows, i.e., rows containing the word "SUMMARY" from EVTYPE.clean
 storm_data <- storm_data[grep(".*(SUMMARY).*$", storm_data$EVTYPE.clean, invert = TRUE),]
-
 #replace all instances of TSTM with THUNDERSTORM
 storm_data$EVTYPE.clean <- gsub("TSTM", "THUNDERSTORM", storm_data$EVTYPE.clean, ignore.case = TRUE)
 #cold should always be followed by /wind chill
@@ -104,15 +106,15 @@ storm_data$EVTYPE.clean <- gsub("  ", " ", storm_data$EVTYPE.clean)
 #i think it's possible we introduced whitespace, better trim again
 storm_data$EVTYPE.clean <- str_trim(storm_data$EVTYPE.clean)
 
-
+#perform a string approximation match
 match_vector <- amatch(storm_data$EVTYPE.clean , evtypes$EVTYPE.offical)
 storm_data$EVTYPE.clean <- evtypes$EVTYPE.offical[match_vector]
 
-
 #finally, anything that we haven't converted should go from NA to OTHER
-
 storm_data$EVTYPE.clean[is.na(storm_data$EVTYPE.clean)] <- "OTHER"
 ```
+
+Economic data is stored in two pairs of columns, damage and exponent for property and crops. A lookup table will be used to establish a multiplier which will be used to create a CROP_DAMAGE variable and a PROPERTY_DAMAGE variable in dollars.
 
 ```{r convert-to-cash}
 #convert the damage and their partner exponent vairables to a cash variable
@@ -149,10 +151,9 @@ storm_data$CROP_DAMAGE <- storm_data$CROPDMG * storm_data$CROP.multiplier
 #repeate for property
 storm_data$PROP.multiplier <- lookup(key.match = key, storm_data$PROPDMGEXP, missing = 1)
 storm_data$PROPERTY_DAMAGE<- storm_data$PROPDMG * storm_data$PROP.multiplier
-
 ```
 
-##get rid of intermediary veriables we are not using
+Here we preform a little cleanup.
 ```{r cleanup}
 # get rid of some of the working columns, just keep what he need going forward
 cols_to_keep <- c("YEAR", 
@@ -165,14 +166,67 @@ cols_to_keep <- c("YEAR",
 storm_data <- storm_data[cols_to_keep]
 ```
 
+The analysis is quite short as the data is now much easier to work with.
+```{r begin-analysis}
 
+storm_data_by_event <- group_by(storm_data, EVTYPE.clean)
+
+harm_summary <- summarise(storm_data_by_event, 
+                           FATALITIES.total = sum(FATALITIES), 
+                           INJURIES.total = sum(INJURIES))
+
+#on this scale working in millions of dollars is better than one dollar, although billions or trillions might be more appropriate
+damage_summary <- summarise(storm_data_by_event,
+                           CROP_DAMAGE.total = sum(CROP_DAMAGE)/1000000,
+                           PROPERTY_DAMAGE.total = sum(PROPERTY_DAMAGE)/1000000)
+
+damage_summary$TOTAL <- damage_summary$CROP_DAMAGE.total + damage_summary$PROPERTY_DAMAGE.total
+```
 
 ##Results
-###Is there a section titled "Results" where the main results are presented?
+
+Excessive heat causes the most fatalities and is a significant event for injuries, however, it contributes virtually nothing to property or crop damage. The greatest cause of injuries is tornadoes, with floods coming in second, and sixth for fatalities (although flash flooding ranks number two for fatalities). Floods are far and away the greatest weather source of economic damage.
+
+Summary of the worst events for fatalities:
+```{r summary-table-fatalities}
+head(arrange(harm_summary, desc(FATALITIES.total)))
+```
+
+Summary of the worst events for injuries:
+```{r summary-table-injuries}
+head(arrange(harm_summary, desc(INJURIES.total)))
+```
+
+Summary of the worst events for economic damage:
+```{r summary-table-economic-damage}
+head(arrange(damage_summary, desc(TOTAL)))
+```
 
 
-####summary tables
-####two plots: econimc damage, bodily harm
+```{r plot-fatalities, fig.width = 9, fig.height = 9}
+ggplot(harm_summary, aes(factor(EVTYPE.clean), FATALITIES.total))+ 
+        geom_bar(stat="identity") +
+        labs(title = "Total Fatalities Since 1996 by Storm Type", 
+             x = "Event Type", 
+             y = "Total Fatalities") +
+        coord_flip()
+```
 
-###Is there at least one figure in the document that contains a plot?
-###Are there at most 3 figures in this document?
+
+```{r plot-injuries, fig.width = 9, fig.height = 9}
+ggplot(harm_summary, aes(x = factor(EVTYPE.clean), y = INJURIES.total))+ 
+        geom_bar(stat="identity") +
+        labs(title = "Total Injuries Since 1996 by Storm Type", 
+             x = "Event Type", 
+             y = "Total Injuries") +
+        coord_flip()
+```
+
+```{r plot-economics, fig.width = 9, fig.height = 9}
+ggplot(damage_summary, aes(x = factor(EVTYPE.clean), y = TOTAL))+ 
+        geom_bar(stat="identity") +
+        labs(title = "Combined Property and Crop Damage Since 1996 by Storm Type", 
+             x = "Event Type", 
+             y = "Total Damage (in Millions of Dollars)") +
+        coord_flip()
+```
